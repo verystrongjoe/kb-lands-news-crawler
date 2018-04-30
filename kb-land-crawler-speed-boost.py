@@ -120,9 +120,25 @@ html = req.text
 # source = soup.find('p', attrs={'class': 'source'})
 # print(source.text.replace('출처',''))
 
+def remove_unnecessary(str) :
+    str = str.replace('\n', ' ')\
+        .replace('\r', ' ').replace('\"', ' ')\
+        .replace('\,', ' ').replace('\t', ' ')\
+        .replace('\”', '').replace('‘','')\
+        .replace('’','').replace('\'','')\
+        .replace('\.','').replace('“', '') \
+        .replace('”', '').replace('~','')
+    import re
+    parse = re.sub('[-=.#/?:$}]', '', str)
+    return parse
+
+
+def get_test_news(id) :
+    print(id)
 
 def get_news(id) :
 
+    print(id)
     news_item =  {}
 
     _payload_detail_assigned = u"{'뉴스일련번호': '" + str(id) + u"'}"
@@ -134,14 +150,17 @@ def get_news(id) :
     soup = BeautifulSoup(html, 'html.parser')
     view_cont = soup.find('div', attrs={'class': 'view_cont'})
 
-    if view_cont is None :
+    if view_cont is None:
         return
 
     #print(type(view_cont))  # confirmed whether or not its type is tag
 
+    count = 0
+
     # print(view_cont.dl.dt.strong.text) # 타이틀
     try :
-        news_item['title'] = view_cont.dl.dt.strong.text
+        news_item['title'] = "\"" +  remove_unnecessary(view_cont.dl.dt.strong.text)+ "\""
+        count += 1
     except AttributeError as e:
         print(e)
         pass
@@ -152,27 +171,26 @@ def get_news(id) :
         for idx, item in enumerate(meta_info.find_all('strong')):
             # print(item.text) # 분류, 등록일, 조회수
             if idx == 0 :
-                news_item['category'] = item.text
+                news_item['category'] = "\"" +   item.text  + "\""
             if idx == 1 :
-                news_item['date'] = item.text
+                news_item['date'] = "\"" +  item.text + "\""
             if idx == 2 :
-                news_item['views_count'] = item.text
+                news_item['views_count'] = "\"" +  item.text + "\""
+        count += 3
     except AttributeError as e:
         print(e)
         pass
 
-    # 출처
-    source = soup.find('p', attrs={'class': 'source'})
-    # print(source.text.replace('출처',''))
+
     try:
-        news_item['source'] = source.text.replace('출처', '').replace('-', '').replace(' ', '')
+        # 출처
+        source = soup.find('p', attrs={'class': 'source'})
+        # print(source.text.replace('출처',''))
+        news_item['source'] = "\"" +  source.text.replace('출처', '').replace('-', '').replace(' ', '') + "\""
+        count += 1
     except AttributeError as e:
         print(e)
         pass
-    except AttributeError as e:
-        print(e)
-        pass
-
 
     try:
 
@@ -191,24 +209,38 @@ def get_news(id) :
             article_txt = soup.find('div', attrs={'class': try_item})
             if article_txt is not None:
                 break
-        news_item['body_content'] = article_txt.text.replace('\n', ' ')
+        # news_item['body_content'] = "\"" + article_txt.text.replace('\n', ' ').replace('\r', ' ').replace(',','\\,').replace('\"', '\\"').replace('\‘', '\\‘') + "\""
+        news_item['body_content'] = "\"" \
+                                    + remove_unnecessary(article_txt.text) \
+                                    + "\""
+
+        count += 1
     except AttributeError as e:
         print(e)
         pass
 
-    print(news_item)
+    # print(count)
+    # print(news_item)
+
     # write_to_file(f, ", ".join(map(str, news_item.values())))
-    write_to_file(", ".join(map(str, news_item.values())))
+    if count == 6 :
+        write_to_file(", ".join(map(str, news_item.values())))
+
     return news_item
 
 
 def run_script_with_mutiple_threads():
     with ThreadPoolExecutor(max_workers=16) as  Executor:
-        jobs = [Executor.submit(get_news, u) for u in range(66466, 44882, -1)]
+        # jobs = [Executor.submit(get_test_news, u) for u in range(66466, 44882, -1)]
+        jobs = [Executor.submit(get_news, u) for u in range(66485, 44882, -1)]
+        # jobs = [Executor.submit(get_news, u) for u in range(66485, 66460, -1)]
 
 
 lock = threading.Lock()
-f = open("results.csv", 'a+', encoding='utf-8')
+# f = open("results.csv", 'a+', encoding='utf-8')
+f = open("results.csv", 'w', encoding='utf-8')
+f.write("\"title\", \"category\", \"date\", \"views_count\", \"source\", \"body_content\"\n")
+
 
 def write_to_file(row):
     with lock:
