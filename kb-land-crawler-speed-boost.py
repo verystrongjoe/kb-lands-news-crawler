@@ -16,6 +16,7 @@ import json
 import codecs
 from ast import literal_eval
 import threading
+import re
 
 
 _url = 'http://nland.kbstar.com/quics?page=B047003&cc=b057597:b057605'
@@ -121,16 +122,19 @@ html = req.text
 # print(source.text.replace('출처',''))
 
 def remove_unnecessary(str) :
-    str = str.replace('\n', ' ')\
-        .replace('\r', ' ').replace('\"', ' ')\
-        .replace('\,', ' ').replace('\t', ' ')\
-        .replace('\”', '').replace('‘','')\
-        .replace('’','').replace('\'','')\
-        .replace('\.','').replace('“', '') \
-        .replace('”', '').replace('~','')
     import re
-    parse = re.sub('[-=.#/?:$}]', '', str)
-    return parse
+
+    # str = str.replace('\n', ' ')\
+    #     .replace('\r', ' ').replace('\"', ' ')\
+    #     .replace('\,', ' ').replace('\t', ' ')\
+    #     .replace('\”', '').replace('‘','')\
+    #     .replace('’','').replace('\'','')\
+    #     .replace('\.','').replace('“', '') \
+    #     .replace('”', '').replace('~','')
+    # parse = re.sub('[-=.#/?:$}]', '', str)
+    clean_doc = re.sub('[^ㄱ-ㅎ가-힣\s]', '', str)
+
+    return clean_doc
 
 
 def get_test_news(id) :
